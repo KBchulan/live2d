@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live2D Wrapper</title>
+  <style>
+    body { 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden; 
+      background-color: transparent;
+    }
+    #live2d-container {
+      width: 400px;
+      height: 600px;
+    }
+  </style>
+  <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
+</head>
+<body>
+  <div id="live2d-container"></div>
+  
+  <script>
+    // 非常简单的Live2D初始化和加载，完全无GPU选项
+    window.onload = async function() {
+      const app = new PIXI.Application({
+        view: document.getElementById('live2d-container'),
+        transparent: true,
+        width: 400,
+        height: 600
+      });
+      
+      try {
+        const model = await PIXI.live2d.Live2DModel.from('./models/bronya/model.json');
+        const scale = Math.min(app.view.width / model.width, app.view.height / model.height) * 0.8;
+        model.scale.set(scale);
+        model.position.set(app.view.width / 2, app.view.height / 2);
+        model.anchor.set(0.5, 0.5);
+        app.stage.addChild(model);
+      } catch (e) {
+        console.error('加载模型出错:', e);
+      }
+    };
+  </script>
+</body>
+</html> 

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>GPU和WebGL诊断</title>
+  <style>
+    body {
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .log {
+      background: #333;
+      color: #fff;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      height: 300px;
+      overflow: auto;
+      margin-top: 20px;
+    }
+
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin-top: 10px;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    canvas {
+      border: 1px solid #ddd;
+      background: #fff;
+      display: block;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>GPU和WebGL诊断工具</h1>
+    <canvas id="webgl-canvas" width="400" height="300"></canvas>
+    <button id="run-tests">运行所有测试</button>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    // 日志函数
+    function log(msg, type = 'info') {
+      console[type](msg);
+      const logEl = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = msg;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // 检查WebGL 1.0支持
+    function checkWebGL1() {
+      log('检查 WebGL 1.0 支持...');
+      const canvas = document.getElementById('webgl-canvas');
+
+      // 尝试不同的上下文获取方法
+      const contexts = ['webgl', 'experimental-webgl'];
+      let gl = null;
+
+      for (const contextName of contexts) {
+        try {
+          gl = canvas.getContext(contextName, {
+            alpha: true,
+            antialias: false,
+            failIfMajorPerformanceCaveat: false,
+            powerPreference: 'high-performance'
+          });
+          if (gl) {
+            log(`成功获取 ${contextName} 上下文`);
+            break;
+          }
+        } catch (e) {
+          log(`获取 ${contextName} 失败: ${e}`, 'error');
+        }
+      }
+
+      if (!gl) {
+        log('WebGL 1.0 不可用', 'error');
+        return null;
+      }
+
+      // 打印WebGL信息
+      try {
+        log(`WebGL版本: ${gl.getParameter(gl.VERSION)}`);
+        log(`WebGL渲染器: ${gl.getParameter(gl.RENDERER)}`);
+        log(`WebGL厂商: ${gl.getParameter(gl.VENDOR)}`);
+        log(`着色器版本: ${gl.getParameter(gl.SHADING_LANGUAGE_VERSION)}`);
+
+        // 检查扩展
+        const extensions = gl.getSupportedExtensions();
+        log(`支持的扩展: ${extensions.length}个`);
+        log(extensions.join(', '));
+      } catch (e) {
+        log(`获取WebGL信息时出错: ${e}`, 'error');
+      }
+
+      // 尝试绘制一个三角形
+      try {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // 创建着色器
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShader, `
+          attribute vec4 position;
+          void main() {
+            gl_Position = position;
+          }
+        `);
+        gl.compileShader(vertexShader);
+
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShader, `
+          precision mediump float;
+          void main() {
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+          }
+        `);
+        gl.compileShader(fragmentShader);
+
+        // 创建程序
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        // 创建缓冲区
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+          0.0, 0.5, 0.0,
+          -0.5, -0.5, 0.0,
+          0.5, -0.5, 0.0
+        ]), gl.STATIC_DRAW);
+
+        // 设置属性
+        const position = gl.getAttribLocation(program, 'position');
+        gl.enableVertexAttribArray(position);
+        gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
+
+        // 绘制
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        log('成功绘制WebGL测试三角形', 'success');
+      } catch (e) {
+        log(`WebGL绘制失败: ${e}`, 'error');
+      }
+
+      return gl;
+    }
+
+    // 检查 Canvas 2D 支持
+    function checkCanvas2D() {
+      log('检查 Canvas 2D 支持...');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        log('Canvas 2D 不可用', 'error');
+        return false;
+      }
+
+      log('Canvas 2D 可用');
+      return true;
+    }
+
+    // 检查系统信息
+    function checkSystemInfo() {
+      log('收集系统信息...');
+      log(`用户代理: ${navigator.userAgent}`);
+      log(`平台: ${navigator.platform}`);
+      log(`硬件并发: ${navigator.hardwareConcurrency}`);
+      log(`设备内存: ${navigator.deviceMemory ? navigator.deviceMemory + 'GB' : '未知'}`);
+
+      // 检查GPU信息 (如果有)
+      if (window.navigator.gpu) {
+        log('WebGPU 可用');
+      } else {
+        log('WebGPU 不可用');
+      }
+    }
+
+    // 主函数
+    document.getElementById('run-tests').addEventListener('click', async () => {
+      log('开始诊断测试...', 'info');
+
+      // 清空日志
+      document.getElementById('log').innerHTML = '';
+
+      // 检查系统信息
+      checkSystemInfo();
+
+      // 检查Canvas 2D
+      checkCanvas2D();
+
+      // 检查WebGL 1.0
+      const gl = checkWebGL1();
+
+      log('测试完成', 'info');
+    });
+
+    // 自动运行测试
+    window.onload = () => {
+      document.getElementById('run-tests').click();
+    };
+  </script>
+</body>
+
+</html>

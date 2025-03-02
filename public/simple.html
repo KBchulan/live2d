@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>简单Live2D测试</title>
+  <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/live2d-widget@3.1.4/lib/L2Dwidget.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #live2d-widget { position: relative; width: 400px; height: 600px; }
+  </style>
+</head>
+<body>
+  <div id="live2d-widget"></div>
+  
+  <script>
+    window.onload = function() {
+      L2Dwidget.init({
+        model: {
+          jsonPath: '/models/bronya/model.json',
+        },
+        display: {
+          position: 'right',
+          width: 400,
+          height: 600,
+          hOffset: 0,
+          vOffset: 0,
+        },
+        mobile: {
+          show: true,
+          scale: 1,
+        },
+        react: {
+          opacity: 0.8
+        },
+        dialog: {
+          enable: true,
+          script: {
+            'tap body': '你好！',
+            'tap face': '你点到我脸了！',
+          }
+        }
+      });
+    };
+  </script>
+</body>
+</html> 
