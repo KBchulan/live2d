@@ -1,0 +1,21 @@
+{
+  "version": "Sample 1.0.0",
+  "model": "model.moc",
+  "textures": [
+    "texture_00.png"
+  ],
+  "physics": "physics.json",
+  "pose": "pose.json",
+  "expressions": [
+    {"name": "smile", "file": "expressions/smile.exp.json"},
+    {"name": "angry", "file": "expressions/angry.exp.json"}
+  ],
+  "motions": {
+    "idle": [
+      {"file": "motions/idle_00.mtn"}
+    ],
+    "tap": [
+      {"file": "motions/tap_00.mtn"}
+    ]
+  }
+} 

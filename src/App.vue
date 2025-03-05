@@ -1,153 +1,202 @@
 <script setup lang="ts">
+import { RouterLink, RouterView } from 'vue-router'
+import HelloWorld from './components/HelloWorld.vue'
 import { ref, onMounted } from 'vue'
-import StaticLive2D from './components/StaticLive2D.vue'
-import ChatInterface from './components/ChatInterface.vue'
+import Live2DModel from './components/Live2DModel.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
+import ChatPanel from './components/ChatPanel.vue'
+import { useModelStore } from './stores/model'
+import { useChatStore } from './stores/chat'
 
-const modelPath = ref('')
-const showChat = ref(false)
-const showSettings = ref(false)
+const live2dModelRef = ref(null)
+const isSettingsOpen = ref(false)
+const isChatOpen = ref(false)
+const modelStore = useModelStore()
+const chatStore = useChatStore()
 
-// 选择模型文件
-async function selectModel() {
-  const path = await window.ipcRenderer.selectModel()
-  if (path) {
-    modelPath.value = path
+function toggleSettings() {
+  isSettingsOpen.value = !isSettingsOpen.value
+  if (isSettingsOpen.value) {
+    isChatOpen.value = false
   }
 }
 
-// 处理AI回复
-function handleAiResponse(response: string) {
-  // 这里可以根据AI回复触发Live2D模型做出相应动作
-  console.log('AI回复:', response)
-}
-
-// 切换聊天界面
 function toggleChat() {
-  showChat.value = !showChat.value
+  isChatOpen.value = !isChatOpen.value
+  if (isChatOpen.value) {
+    isSettingsOpen.value = false
+  }
 }
 
-// 切换设置界面
-function toggleSettings() {
-  showSettings.value = !showSettings.value
-}
-
-// 加载默认模型
-function loadDefaultModel() {
-  // 修改为您实际的模型路径
-  // 可以是以下格式之一:
-  // 1. 完整路径: 'your_model_folder/your_model.model3.json'
-  // 2. 仅文件夹名: 'your_model_folder'
-  modelPath.value = 'bronya'; // 替换为你的模型文件夹名称
+function reloadModel() {
+  if (live2dModelRef.value) {
+    (live2dModelRef.value as any).reloadModel();
+  }
 }
 
 onMounted(() => {
-  // 检查是否有保存的模型路径
-  const savedModelPath = localStorage.getItem('modelPath')
-  if (savedModelPath) {
-    modelPath.value = savedModelPath
-  } else {
-    // 如果没有保存的模型路径，加载默认模型
-    loadDefaultModel()
-  }
+  // 初始化存储
+  modelStore.init()
+  chatStore.init()
 })
 </script>
 
 <template>
   <div class="app-container">
-    <!-- 使用静态Live2D组件 -->
-    <StaticLive2D v-if="modelPath" :modelPath="modelPath" />
-
-    <!-- 未选择模型时显示 -->
-    <div v-else class="no-model">
-      <button @click="selectModel">选择Live2D模型</button>
-    </div>
-
-    <!-- 控制按钮 -->
+    <h1 class="app-title">Live2D 桌面应用</h1>
+    
+    <Live2DModel ref="live2dModelRef" />
+    
     <div class="control-buttons">
-      <button @click="toggleChat" class="control-btn">
-        {{ showChat ? '隐藏聊天' : '显示聊天' }}
+      <button @click="toggleSettings" class="control-button settings-button" title="设置">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+          <path fill="currentColor" d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+        </svg>
       </button>
-      <button @click="toggleSettings" class="control-btn">
-        {{ showSettings ? '隐藏设置' : '设置' }}
+      <button @click="toggleChat" class="control-button chat-button" title="聊天">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+          <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m0 14H5.2L4 17.2V4h16v12Z"/>
+        </svg>
       </button>
-      <button @click="selectModel" class="control-btn">更换模型</button>
     </div>
-
-    <!-- 聊天界面 -->
-    <ChatInterface v-if="showChat" @ai-response="handleAiResponse" />
-
-    <!-- 设置面板 -->
-    <div v-if="showSettings" class="settings-panel">
-      <h3>设置</h3>
-      <div class="setting-item">
-        <label>透明度</label>
-        <input type="range" min="0" max="1" step="0.1" value="1" />
-      </div>
-      <div class="setting-item">
-        <label>大小</label>
-        <input type="range" min="0.5" max="1.5" step="0.1" value="1" />
-      </div>
-      <div class="setting-item">
-        <button @click="toggleSettings">关闭</button>
-      </div>
-    </div>
+    
+    <SettingsPanel :isOpen="isSettingsOpen" @close="isSettingsOpen = false" @modelChanged="reloadModel" />
+    <ChatPanel :isOpen="isChatOpen" @close="isChatOpen = false" />
   </div>
 </template>
 
 <style scoped>
-.app-container {
-  position: relative;
-  width: 400px;
-  height: 600px;
+header {
+  line-height: 1.5;
+  max-height: 100vh;
+}
+
+.app-title {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: #333;
+  font-size: 18px;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 5px;
+  margin: 0;
+}
+
+.logo {
+  display: block;
+  margin: 0 auto 2rem;
+}
+
+nav {
+  width: 100%;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+nav a.router-link-exact-active {
+  color: var(--color-text);
+}
+
+nav a.router-link-exact-active:hover {
+  background-color: transparent;
+}
+
+nav a {
+  display: inline-block;
+  padding: 0 1rem;
+  border-left: 1px solid var(--color-border);
+}
+
+nav a:first-of-type {
+  border: 0;
+}
+
+@media (min-width: 1024px) {
+  header {
+    display: flex;
+    place-items: center;
+    padding-right: calc(var(--section-gap) / 2);
+  }
+
+  .logo {
+    margin: 0 2rem 0 0;
+  }
+
+  header .wrapper {
+    display: flex;
+    place-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  nav {
+    text-align: left;
+    margin-left: -1rem;
+    font-size: 1rem;
+
+    padding: 1rem 0;
+    margin-top: 1rem;
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: transparent;
   overflow: hidden;
 }
 
-.no-model {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.1);
+.app-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .control-buttons {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  padding: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
-.control-btn {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-size: 12px;
+.control-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: white;
+  margin: 0 5px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
-.settings-panel {
-  position: absolute;
-  top: 50px;
-  right: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 15px;
-  border-radius: 8px;
-  width: 200px;
+.control-button:hover {
+  background-color: #f5f5f5;
+  color: #333;
+  transform: scale(1.05);
 }
 
-.setting-item {
-  margin-bottom: 10px;
-}
-
-.setting-item label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-.setting-item input {
-  width: 100%;
+button:focus {
+  outline: none;
 }
 </style>
